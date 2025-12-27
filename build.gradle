@@ -1,0 +1,118 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'com.gradleup.shadow' version '8.3.0'
+    id 'maven-publish'
+}
+
+application {
+    mainClass = 'io.nodelink.client.NodeLink'
+}
+
+task generateVersionClass {
+    doLast {
+        def versionFile = file("$buildDir/generated/source/version/io/nodelink/client/update/Version.java")
+        versionFile.parentFile.mkdirs()
+        versionFile.text = """
+package io.nodelink.client.update;
+
+public class Version {
+    public static final String VERSION = "${project.version}";
+}
+"""
+    }
+}
+
+compileJava.dependsOn generateVersionClass
+sourceSets.main.java.srcDir "$buildDir/generated/source/version"
+
+tasks.register('printVersion') {
+    doLast {
+        println project.version
+    }
+}
+
+shadowJar {
+    archiveClassifier.set('fat')
+
+
+    manifest {
+        attributes 'Main-Class': 'io.nodelink.client.NodeLink'
+    }
+}
+
+group = 'io.nodelink.client'
+version = '0.1.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    implementation 'org.jline:jline:3.30.0'
+    implementation 'io.projectreactor:reactor-core:3.8.1'
+}
+
+tasks.jar {
+    manifest {
+        attributes 'Main-Class': 'io.nodelink.client.NodeLink'
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.test {
+    useJUnitPlatform()
+}
+
+test {
+    useJUnitPlatform()
+}
+
+java {
+    withSourcesJar()
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+
+            groupId = project.group.toString()
+            artifactId = 'NodeLink-Client'
+            version = project.version.toString()
+            pom {
+                name = 'NodeLink-Client'
+                description = 'Change later'
+                url = 'https://nodelink-project.github.io/NodeLink-Client/'
+                licenses {
+                    license {
+                        name = 'GPL-3.0'
+                        url = 'https://raw.githubusercontent.com/NodeLink-Project/NodeLink-Client/refs/heads/main/LICENSE'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'sandro642'
+                        name = 'Sandro'
+                        email = 'sandro33810@gmail.com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/NodeLink-Project/NodeLink-Client.git'
+                    developerConnection = 'scm:git:ssh://github.com/NodeLink-Project/NodeLink-Client.git'
+                    url = 'https://github.com/NodeLink-Project/NodeLink-Client'
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = 'LocalRepo'
+            url = uri(layout.buildDirectory.dir('repo'))
+        }
+    }
+}
